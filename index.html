@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEM ABSENSI PEGAWAI DISDUKCAPIL BANGKEP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .bg-gov-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #0f172a 100%); }
+        .gold-accent { color: #f59e0b; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-gov-gradient text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3 text-center sm:text-left">
+                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 flex items-center justify-center border-2 border-amber-400/60 shadow-inner flex-shrink-0">
+                    <i class="fa-solid fa-landmark text-amber-400 text-xl sm:text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xs sm:text-sm font-semibold tracking-wider text-amber-300 uppercase">PEMERINTAH KABUPATEN BANGGAI KEPULAUAN</h1>
+                    <h2 class="text-base sm:text-xl font-bold tracking-tight">DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL</h2>
+                </div>
+            </div>
+
+            <!-- Realtime Clock & Navigation -->
+            <div class="flex items-center gap-3 flex-wrap justify-center">
+                <div class="bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs sm:text-sm flex items-center gap-2">
+                    <i class="fa-regular fa-clock text-amber-400"></i>
+                    <span id="live-clock" class="font-mono font-medium">Memuat Waktu...</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="switchView('attendance')" id="nav-attendance" class="px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-blue-600 text-white shadow hover:bg-blue-500 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-clipboard-user"></i> Absensi
+                    </button>
+                    <button onclick="checkAdminAccess()" id="nav-admin" class="px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-lock"></i> Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 sm:py-8">
+
+        <!-- VIEW 1: ATTENDANCE FORM -->
+        <section id="view-attendance" class="space-y-6">
+            <!-- Hero Announcement / Schedule Status Banner -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                    <span class="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full mb-2 border border-blue-200">
+                        <i class="fa-solid fa-shield-halved mr-1"></i> Sistem Absensi Resmi Terpusat
+                    </span>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900">Selamat Datang di Portal Absensi Pegawai</h3>
+                    <p class="text-sm text-slate-600 mt-1">Silakan isi formulir dengan valid dan lakukan swafoto (foto langsung) sesuai jadwal sesi apel yang ditentukan.</p>
+                </div>
+                <!-- Sesi Status Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto">
+                    <!-- Apel Pagi -->
+                    <div id="badge-apel-pagi" class="p-3.5 rounded-xl border transition-all">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-bold uppercase tracking-wide">Apel Pagi</span>
+                            <span id="status-pagi-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                        </div>
+                        <div class="text-xs font-medium text-slate-600">07:30 - 08:30 WITA</div>
+                        <div id="status-pagi-text" class="text-xs font-bold mt-1 text-slate-500">Memeriksa jadwal...</div>
+                    </div>
+                    <!-- Apel Sore -->
+                    <div id="badge-apel-sore" class="p-3.5 rounded-xl border transition-all">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-bold uppercase tracking-wide">Apel Sore</span>
+                            <span id="status-sore-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                        </div>
+                        <div class="text-xs font-medium text-slate-600">15:30 - 16:30 WITA</div>
+                        <div id="status-sore-text" class="text-xs font-bold mt-1 text-slate-500">Memeriksa jadwal...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testing Time Simulation Mode (Optional utility for testing out-of-schedule) -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-amber-900">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
+                    <span><strong>Mode Pengujian Waktu:</strong> Anda dapat mengaktifkan simulasi waktu jika ingin menguji form di luar jam operasional resmi.</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="font-semibold cursor-pointer">Simulasi Sesi:</label>
+                    <select id="time-simulation" onchange="updateTimeSimulation()" class="bg-white border border-amber-300 rounded px-2 py-1 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-amber-500">
+                        <option value="real">Gunakan Waktu Nyata (WITA)</option>
+                        <option value="pagi">Simulasi Jam Apel Pagi (08:00 WITA)</option>
+                        <option value="sore">Simulasi Jam Apel Sore (16:00 WITA)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Form & Camera Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Form Fields (7 cols) -->
+                <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                    <h4 class="text-lg font-bold text-slate-900 mb-5 pb-3 border-b border-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-id-card text-blue-600"></i> Formulir Identitas & Sesi Kehadiran
+                    </h4>
+
+                    <form id="attendance-form" onsubmit="submitAttendance(event)" class="space-y-4">
+                        <!-- Nama Lengkap & Gelar -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Lengkap & Gelar <span class="text-red-500">*</span></label>
+                            <input type="text" id="emp-name" required placeholder="Contoh: Drs. H. Ahmad Fauzi, M.Si" class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition">
+                        </div>
+
+                        <!-- NIP Pegawai -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nomor Induk Pegawai (NIP) <span class="text-red-500">*</span></label>
+                            <input type="text" id="emp-nip" required maxlength="25" placeholder="Contoh: 198001012005011001" class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition font-mono">
+                        </div>
+
+                        <!-- Status Kepegawaian -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Status Kepegawaian <span class="text-red-500">*</span></label>
+                            <select id="emp-status" required class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition">
+                                <option value="">-- Pilih Status Kepegawaian --</option>
+                                <option value="PNS">PNS (Pegawai Negeri Sipil)</option>
+                                <option value="PPPK">PPPK (Pegawai Pemerintah dengan Perjanjian Kerja)</option>
+                                <option value="PPPK PW">PPPK PW (Paruh Waktu)</option>
+                            </select>
+                        </div>
+
+                        <!-- Sesi Absensi -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Pilih Sesi Apel <span class="text-red-500">*</span></label>
+                            <select id="emp-session" required class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition">
+                                <option value="">-- Pilih Sesi Apel --</option>
+                                <option value="Apel Pagi">Apel Pagi (07:30 - 08:30 WITA)</option>
+                                <option value="Apel Sore">Apel Sore (15:30 - 16:30 WITA)</option>
+                            </select>
+                        </div>
+
+                        <!-- Hidden Photo Data -->
+                        <input type="hidden" id="photo-data" required>
+
+                        <!-- Submit Button -->
+                        <div class="pt-4">
+                            <button type="submit" id="btn-submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-paper-plane"></i> Kirim Absensi Sekarang
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Camera & Photo Verification (5 cols) -->
+                <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-lg font-bold text-slate-900 mb-2 pb-3 border-b border-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-camera text-blue-600"></i> Swafoto Bukti Kehadiran
+                        </h4>
+                        <p class="text-xs text-slate-500 mb-4">Pastikan wajah terlihat jelas di dalam bingkai kamera sebagai bukti kehadiran fisik.</p>
+
+                        <!-- Camera Viewport / Preview Box -->
+                        <div id="camera-container" class="relative w-full bg-slate-900 rounded-xl overflow-hidden aspect-[4/3] flex items-center justify-center border-2 border-slate-200 shadow-inner">
+                            <!-- Video Stream -->
+                            <video id="camera-feed" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+                            
+                            <!-- Captured Photo Preview -->
+                            <img id="photo-preview" class="w-full h-full object-cover hidden" alt="Pratinjau Foto">
+
+                            <!-- Initial Camera State Placeholder -->
+                            <div id="camera-placeholder" class="text-center p-6 text-slate-400">
+                                <i class="fa-solid fa-video-slash text-4xl mb-2"></i>
+                                <p class="text-xs">Kamera belum diaktifkan. Klik tombol di bawah untuk mulai.</p>
+                            </div>
+
+                            <!-- Canvas for Snapshot -->
+                            <canvas id="camera-canvas" class="hidden"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Camera Control Buttons -->
+                    <div class="mt-6 space-y-2">
+                        <button type="button" id="btn-start-camera" onclick="startCamera()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-camera-retro"></i> Aktifkan Kamera
+                        </button>
+                        <div id="camera-active-controls" class="hidden grid grid-cols-2 gap-2">
+                            <button type="button" onclick="takeSnapshot()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-3 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-circle-dot"></i> Ambil Foto
+                            </button>
+                            <button type="button" onclick="retakePhoto()" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 px-3 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-rotate-right"></i> Ambil Ulang
+                            </button>
+                        </div>
+                        <p id="camera-status-msg" class="text-xs text-center text-slate-500 font-medium mt-2"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- VIEW 2: ADMIN LOGIN -->
+        <section id="view-admin-login" class="hidden max-w-md mx-auto my-12">
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-blue-50 text-blue-700 rounded-full flex items-center justify-center mx-auto mb-3 border border-blue-200 text-2xl shadow-inner">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900">Login Administrator</h3>
+                    <p class="text-xs text-slate-500 mt-1">Masukkan NIP dan Password khusus Admin Disdukcapil Bangkep.</p>
+                </div>
+
+                <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">NIP Admin</label>
+                        <input type="text" id="admin-nip" required placeholder="Masukkan NIP Admin" class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Password</label>
+                        <input type="password" id="admin-pass" required placeholder="Masukkan Password" class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    </div>
+                    <div id="login-error" class="text-xs text-red-600 font-medium hidden text-center"></div>
+                    <div class="pt-2 flex gap-3">
+                        <button type="button" onclick="switchView('attendance')" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">Batal</button>
+                        <button type="submit" class="w-2/3 bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow">Masuk Dashboard</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+
+        <!-- VIEW 3: ADMIN DASHBOARD & HISTORY -->
+        <section id="view-admin-dashboard" class="hidden space-y-6">
+            <!-- Dashboard Header & Actions -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full mb-1 border border-emerald-200">
+                        <i class="fa-solid fa-circle-check mr-1"></i> Sesi Admin Aktif
+                    </span>
+                    <h3 class="text-2xl font-bold text-slate-900">Dashboard Riwayat Absensi Pegawai</h3>
+                    <p class="text-xs text-slate-500">Kelola, filter, dan unduh data rekapitulasi kehadiran seluruh pegawai.</p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 shadow">
+                        <i class="fa-solid fa-file-excel"></i> Ekspor ke Excel (CSV)
+                    </button>
+                    <button onclick="adminLogout()" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 shadow">
+                        <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Statistics Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Total Kehadiran</div>
+                    <div id="stat-total" class="text-2xl font-bold text-slate-900 mt-1">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-xs font-semibold text-blue-600 uppercase">Apel Pagi</div>
+                    <div id="stat-pagi" class="text-2xl font-bold text-blue-700 mt-1">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-xs font-semibold text-amber-600 uppercase">Apel Sore</div>
+                    <div id="stat-sore" class="text-2xl font-bold text-amber-700 mt-1">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-xs font-semibold text-emerald-600 uppercase">Hari Ini</div>
+                    <div id="stat-today" class="text-2xl font-bold text-emerald-700 mt-1">0</div>
+                </div>
+            </div>
+
+            <!-- Search & Filters Bar -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <!-- Search -->
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Cari Nama / NIP</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-search"></i>
+                        </span>
+                        <input type="text" id="filter-search" oninput="renderAttendanceTable()" placeholder="Ketik nama atau NIP..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    </div>
+                </div>
+                <!-- Filter Sesi -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Sesi Apel</label>
+                    <select id="filter-session" onchange="renderAttendanceTable()" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        <option value="">Semua Sesi</option>
+                        <option value="Apel Pagi">Apel Pagi</option>
+                        <option value="Apel Sore">Apel Sore</option>
+                    </select>
+                </div>
+                <!-- Filter Status Kepegawaian -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Status Kepegawaian</label>
+                    <select id="filter-status" onchange="renderAttendanceTable()" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        <option value="">Semua Status</option>
+                        <option value="PNS">PNS</option>
+                        <option value="PPPK">PPPK</option>
+                        <option value="PPPK PW">PPPK PW</option>
+                    </select>
+                </div>
+                <!-- Filter Tanggal -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
+                    <input type="date" id="filter-date" onchange="renderAttendanceTable()" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                </div>
+            </div>
+
+            <!-- Attendance Data Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 uppercase font-semibold tracking-wider text-[11px] border-b border-slate-200">
+                                <th class="p-3 sm:p-4 text-center">No</th>
+                                <th class="p-3 sm:p-4">Pegawai & NIP</th>
+                                <th class="p-3 sm:p-4">Status</th>
+                                <th class="p-3 sm:p-4">Sesi Apel</th>
+                                <th class="p-3 sm:p-4">Waktu (WITA)</th>
+                                <th class="p-3 sm:p-4 text-center">Foto</th>
+                                <th class="p-3 sm:p-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-table-body" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="table-empty-state" class="hidden p-12 text-center text-slate-400">
+                    <i class="fa-solid fa-folder-open text-4xl mb-2"></i>
+                    <p class="text-sm font-medium">Tidak ada data absensi yang ditemukan.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Photo Viewer -->
+    <div id="photo-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-4 relative shadow-2xl">
+            <button onclick="closePhotoModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h4 id="modal-employee-title" class="font-bold text-slate-900 text-sm mb-3">Bukti Foto Kehadiran</h4>
+            <div class="rounded-xl overflow-hidden bg-slate-900 aspect-[4/3] flex items-center justify-center">
+                <img id="modal-img-preview" src="" alt="Bukti Foto" class="w-full h-full object-cover">
+            </div>
+            <div id="modal-employee-meta" class="mt-3 text-xs text-slate-600 space-y-1"></div>
+        </div>
+    </div>
+
+    <!-- Modal for Delete Confirmation -->
+    <div id="delete-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <div class="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h4 class="text-lg font-bold text-slate-900 mb-2">Hapus Riwayat Absensi?</h4>
+            <p id="delete-modal-msg" class="text-xs sm:text-sm text-slate-600 mb-6">Apakah Anda yakin ingin menghapus data absensi pegawai ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 rounded-xl text-xs sm:text-sm transition">Batal</button>
+                <button id="btn-confirm-delete" onclick="confirmDeleteAttendance()" class="w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2.5 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-trash-can"></i> Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Modal (Custom Alert) -->
+    <div id="alert-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl animate-scaleIn">
+            <div id="alert-icon" class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"></div>
+            <h4 id="alert-title" class="text-lg font-bold text-slate-900 mb-2"></h4>
+            <p id="alert-message" class="text-xs sm:text-sm text-slate-600 mb-6"></p>
+            <button onclick="closeAlertModal()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow">OK, Mengerti</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 mt-12 border-t border-slate-800 text-center text-xs">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p class="font-semibold text-slate-300">Sistem Absensi Pegawai — Dinas Kependudukan dan Pencatatan Sipil Kabupaten Banggai Kepulauan</p>
+            <p>&copy; 2026 DISDUKCAPIL BANGKEP. Hak Cipta Dilindungi Undang-Undang.</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Initialize Firebase
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'disdukcapil-bangkep-absensi';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+        let db, auth, attendanceCollection;
+        let allAttendanceRecords = [];
+        let videoStream = null;
+        let simulatedTimeMode = 'real'; // 'real', 'pagi', 'sore'
+        let pendingDeleteId = null;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    attendanceCollection = collection(db, 'artifacts', appId, 'public', 'data', 'absensi_disdukcapil');
+                    
+                    // Listen to real-time database changes
+                    onSnapshot(query(attendanceCollection), (snapshot) => {
+                        allAttendanceRecords = [];
+                        snapshot.forEach((docSnap) => {
+                            allAttendanceRecords.push({ id: docSnap.id, ...docSnap.data() });
+                        });
+                        updateDashboardStats();
+                        renderAttendanceTable();
+                    }, (error) => {
+                        console.error("Firestore sync error:", error);
+                    });
+                } else {
+                    console.warn("Firebase configuration missing. Running in local fallback mode.");
+                    loadLocalFallback();
+                }
+            } catch (e) {
+                console.error("Firebase init error:", e);
+                loadLocalFallback();
+            }
+
+            // Start Live Clock
+            setInterval(updateClockAndSchedules, 1000);
+            updateClockAndSchedules();
+        });
+
+        function loadLocalFallback() {
+            const saved = localStorage.getItem('disdukcapil_absensi_local');
+            if (saved) {
+                try { allAttendanceRecords = JSON.parse(saved); } catch(e){}
+            }
+            updateDashboardStats();
+            renderAttendanceTable();
+        }
+
+        function saveLocalFallback() {
+            localStorage.setItem('disdukcapil_absensi_local', JSON.stringify(allAttendanceRecords));
+            updateDashboardStats();
+            renderAttendanceTable();
+        }
+
+        // --- CLOCK & SCHEDULE VALIDATION (WITA - Asia/Makassar) ---
+        function getCurrentWitaTime() {
+            const now = new Date();
+            if (simulatedTimeMode === 'pagi') {
+                now.setHours(8, 0, 0);
+            } else if (simulatedTimeMode === 'sore') {
+                now.setHours(16, 0, 0);
+            }
+            return now;
+        }
+
+        function updateClockAndSchedules() {
+            const now = getCurrentWitaTime();
+            const timeString = now.toLocaleTimeString('id-ID', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = now.toLocaleDateString('id-ID', { timeZone: 'Asia/Makassar', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            document.getElementById('live-clock').innerText = `${dateString} | ${timeString} WITA`;
+
+            // Time hours & minutes in decimal or minutes from midnight
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const timeVal = hours * 60 + minutes; // minutes from 00:00
+
+            // Apel Pagi: 07:30 (450) - 08:30 (510)
+            const pagiStart = 7 * 60 + 30;
+            const pagiEnd = 8 * 60 + 30;
+
+            // Apel Sore: 15:30 (930) - 16:30 (990)
+            const soreStart = 15 * 60 + 30;
+            const soreEnd = 16 * 60 + 30;
+
+            updateScheduleBadge('pagi', timeVal, pagiStart, pagiEnd);
+            updateScheduleBadge('sore', timeVal, soreStart, soreEnd);
+        }
+
+        function updateScheduleBadge(type, currentMins, startMins, endMins) {
+            const badge = document.getElementById(`badge-apel-${type}`);
+            const dot = document.getElementById(`status-${type}-dot`);
+            const txt = document.getElementById(`status-${type}-text`);
+
+            if (currentMins >= startMins && currentMins <= endMins) {
+                badge.className = "p-3.5 rounded-xl border bg-emerald-50 border-emerald-300 transition-all shadow-sm";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+                txt.className = "text-xs font-bold mt-1 text-emerald-700";
+                txt.innerText = "SESI DIBUKA (AKTIF)";
+            } else if (currentMins < startMins) {
+                badge.className = "p-3.5 rounded-xl border bg-slate-50 border-slate-200 transition-all";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+                txt.className = "text-xs font-bold mt-1 text-amber-600";
+                txt.innerText = "Belum Dibuka";
+            } else {
+                badge.className = "p-3.5 rounded-xl border bg-slate-50 border-slate-200 transition-all";
+                dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                txt.className = "text-xs font-bold mt-1 text-rose-600";
+                txt.innerText = "Sesi Telah Ditutup";
+            }
+        }
+
+        window.updateTimeSimulation = function() {
+            simulatedTimeMode = document.getElementById('time-simulation').value;
+            updateClockAndSchedules();
+        };
+
+        // --- NAVIGATION & VIEWS ---
+        window.switchView = function(viewName) {
+            document.getElementById('view-attendance').classList.add('hidden');
+            document.getElementById('view-admin-login').classList.add('hidden');
+            document.getElementById('view-admin-dashboard').classList.add('hidden');
+
+            if (viewName === 'attendance') {
+                document.getElementById('view-attendance').classList.remove('hidden');
+                document.getElementById('nav-attendance').className = "px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-blue-600 text-white shadow hover:bg-blue-500 transition flex items-center gap-1.5";
+                document.getElementById('nav-admin').className = "px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition flex items-center gap-1.5";
+            } else if (viewName === 'admin-login') {
+                document.getElementById('view-admin-login').classList.remove('hidden');
+            } else if (viewName === 'admin-dashboard') {
+                document.getElementById('view-admin-dashboard').classList.remove('hidden');
+                document.getElementById('nav-admin').className = "px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-blue-600 text-white shadow transition flex items-center gap-1.5";
+                document.getElementById('nav-attendance').className = "px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition flex items-center gap-1.5";
+            }
+        };
+
+        window.checkAdminAccess = function() {
+            const token = sessionStorage.getItem('disdukcapil_admin_token');
+            if (token === 'authenticated') {
+                switchView('admin-dashboard');
+            } else {
+                switchView('admin-login');
+            }
+        };
+
+        // --- CAMERA FUNCTIONS ---
+        window.startCamera = async function() {
+            const video = document.getElementById('camera-feed');
+            const placeholder = document.getElementById('camera-placeholder');
+            const startBtn = document.getElementById('btn-start-camera');
+            const controls = document.getElementById('camera-active-controls');
+            const statusMsg = document.getElementById('camera-status-msg');
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+                video.srcObject = videoStream;
+                video.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                startBtn.classList.add('hidden');
+                controls.classList.remove('hidden');
+                statusMsg.innerText = "Kamera aktif. Silakan posisikan wajah dan ambil foto.";
+                statusMsg.className = "text-xs text-center text-emerald-600 font-semibold mt-2";
+            } catch (err) {
+                console.error("Camera access error:", err);
+                statusMsg.innerText = "Gagal mengakses kamera. Pastikan izin kamera diaktifkan pada browser.";
+                statusMsg.className = "text-xs text-center text-rose-600 font-semibold mt-2";
+                showAlertModal("Akses Kamera Ditolak", "Mohon berikan izin akses kamera pada perangkat Anda untuk melakukan swafoto absensi.", "error");
+            }
+        };
+
+        window.takeSnapshot = function() {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('camera-canvas');
+            const preview = document.getElementById('photo-preview');
+            const photoInput = document.getElementById('photo-data');
+
+            if (!videoStream) return;
+
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            preview.src = dataUrl;
+            preview.classList.remove('hidden');
+            video.classList.add('hidden');
+            photoInput.value = dataUrl;
+
+            document.getElementById('camera-status-msg').innerText = "Foto berhasil diambil!";
+        };
+
+        window.retakePhoto = function() {
+            const video = document.getElementById('camera-feed');
+            const preview = document.getElementById('photo-preview');
+            const photoInput = document.getElementById('photo-data');
+
+            preview.src = "";
+            preview.classList.add('hidden');
+            video.classList.remove('hidden');
+            photoInput.value = "";
+            document.getElementById('camera-status-msg').innerText = "Silakan ambil ulang swafoto.";
+        };
+
+        function stopCameraStream() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+        }
+
+        // --- SUBMIT ATTENDANCE ---
+        window.submitAttendance = async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('emp-name').value.trim();
+            const nip = document.getElementById('emp-nip').value.trim();
+            const status = document.getElementById('emp-status').value;
+            const session = document.getElementById('emp-session').value;
+            const photo = document.getElementById('photo-data').value;
+
+            if (!photo) {
+                showAlertModal("Foto Belum Diambil", "Anda wajib mengambil swafoto (foto langsung) terlebih dahulu sebelum mengirimkan absensi.", "error");
+                return;
+            }
+
+            // Validate schedule
+            const now = getCurrentWitaTime();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const timeVal = hours * 60 + minutes;
+
+            const pagiStart = 7 * 60 + 30;
+            const pagiEnd = 8 * 60 + 30;
+            const soreStart = 15 * 60 + 30;
+            const soreEnd = 16 * 60 + 30;
+
+            let inSchedule = false;
+            if (session === 'Apel Pagi' && timeVal >= pagiStart && timeVal <= pagiEnd) inSchedule = true;
+            if (session === 'Apel Sore' && timeVal >= soreStart && timeVal <= soreEnd) inSchedule = true;
+
+            // In simulation mode, allow submission
+            if (simulatedTimeMode !== 'real') {
+                inSchedule = true;
+            }
+
+            if (!inSchedule) {
+                const sessionName = session;
+                const scheduleRange = session === 'Apel Pagi' ? '07:30 - 08:30 WITA' : '15:30 - 16:30 WITA';
+                showAlertModal("Jadwal Sesi Ditutup", `Sesi ${sessionName} hanya dapat dilakukan pada pukul ${scheduleRange}. Saat ini diluar jadwal yang ditentukan.`, "error");
+                return;
+            }
+
+            // Check duplicate attendance for same NIP, same date, same session
+            const dateStr = now.toISOString().split('T')[0];
+            const isDuplicate = allAttendanceRecords.some(item => item.nip === nip && item.date === dateStr && item.session === session);
+
+            if (isDuplicate) {
+                showAlertModal("Absensi Ganda", `Pegawai dengan NIP ${nip} sudah melakukan absensi untuk ${session} pada tanggal hari ini.`, "error");
+                return;
+            }
+
+            const timeString = now.toLocaleTimeString('id-ID', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const recordData = {
+                name,
+                nip,
+                statusKepegawaian: status,
+                session,
+                date: dateStr,
+                time: timeString,
+                photo,
+                timestamp: Date.now()
+            };
+
+            const submitBtn = document.getElementById('btn-submit');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan Absensi...`;
+
+            try {
+                if (db && attendanceCollection) {
+                    await addDoc(attendanceCollection, recordData);
+                } else {
+                    allAttendanceRecords.push({ id: 'local_' + Date.now(), ...recordData });
+                    saveLocalFallback();
+                }
+
+                showAlertModal("Absensi Berhasil!", `Terima kasih ${name}. Kehadiran Anda untuk ${session} telah tercatat secara resmi pada sistem terpusat.`, "success");
+                
+                // Reset form
+                document.getElementById('attendance-form').reset();
+                document.getElementById('photo-preview').classList.add('hidden');
+                document.getElementById('camera-feed').classList.add('hidden');
+                document.getElementById('camera-placeholder').classList.remove('hidden');
+                document.getElementById('camera-active-controls').classList.add('hidden');
+                document.getElementById('btn-start-camera').classList.remove('hidden');
+                document.getElementById('photo-data').value = "";
+                document.getElementById('camera-status-msg').innerText = "";
+                stopCameraStream();
+
+            } catch (err) {
+                console.error("Error saving attendance:", err);
+                showAlertModal("Gagal Menyimpan", "Terjadi kesalahan koneksi saat menyimpan data ke server. Silakan coba lagi.", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Kirim Absensi Sekarang`;
+            }
+        };
+
+        // --- ADMIN LOGIN & AUTH ---
+        window.handleAdminLogin = function(e) {
+            e.preventDefault();
+            const nipInput = document.getElementById('admin-nip').value.trim();
+            const passInput = document.getElementById('admin-pass').value.trim();
+            const errorDiv = document.getElementById('login-error');
+
+            // Credentials requested: NIP 200209072025062006, Password Dukcapil7207
+            if (nipInput === '200209072025062006' && passInput === 'Dukcapil7207') {
+                sessionStorage.setItem('disdukcapil_admin_token', 'authenticated');
+                errorDiv.classList.add('hidden');
+                document.getElementById('admin-nip').value = "";
+                document.getElementById('admin-pass').value = "";
+                switchView('admin-dashboard');
+            } else {
+                errorDiv.innerText = "NIP atau Password Admin tidak valid.";
+                errorDiv.classList.remove('hidden');
+            }
+        };
+
+        window.adminLogout = function() {
+            sessionStorage.removeItem('disdukcapil_admin_token');
+            switchView('attendance');
+            showAlertModal("Keluar Sesi", "Anda telah keluar dari sesi administrator.", "success");
+        };
+
+        // --- ADMIN DASHBOARD & TABLE RENDER ---
+        function updateDashboardStats() {
+            const total = allAttendanceRecords.length;
+            const pagi = allAttendanceRecords.filter(i => i.session === 'Apel Pagi').length;
+            const sore = allAttendanceRecords.filter(i => i.session === 'Apel Sore').length;
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayCount = allAttendanceRecords.filter(i => i.date === todayStr).length;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-pagi').innerText = pagi;
+            document.getElementById('stat-sore').innerText = sore;
+            document.getElementById('stat-today').innerText = todayCount;
+        }
+
+        window.renderAttendanceTable = function() {
+            const tbody = document.getElementById('attendance-table-body');
+            const emptyState = document.getElementById('table-empty-state');
+            
+            const searchVal = document.getElementById('filter-search').value.toLowerCase();
+            const sessionVal = document.getElementById('filter-session').value;
+            const statusVal = document.getElementById('filter-status').value;
+            const dateVal = document.getElementById('filter-date').value;
+
+            let filtered = allAttendanceRecords.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(searchVal) || item.nip.includes(searchVal);
+                const matchSession = sessionVal ? item.session === sessionVal : true;
+                const matchStatus = statusVal ? item.statusKepegawaian === statusVal : true;
+                const matchDate = dateVal ? item.date === dateVal : true;
+                return matchSearch && matchSession && matchStatus && matchDate;
+            });
+
+            // Sort by latest timestamp
+            filtered.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            tbody.innerHTML = "";
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filtered.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                
+                const statusBadgeColor = item.statusKepegawaian === 'PNS' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                         item.statusKepegawaian === 'PPPK' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-amber-100 text-amber-800 border-amber-200';
+
+                const sessionBadgeColor = item.session === 'Apel Pagi' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-orange-50 text-orange-700 border-orange-200';
+
+                tr.innerHTML = `
+                    <td class="p-3 sm:p-4 text-center font-medium text-slate-500">${index + 1}</td>
+                    <td class="p-3 sm:p-4">
+                        <div class="font-bold text-slate-900">${escapeHtml(item.name)}</div>
+                        <div class="text-xs font-mono text-slate-500">NIP. ${escapeHtml(item.nip)}</div>
+                    </td>
+                    <td class="p-3 sm:p-4">
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border ${statusBadgeColor}">${escapeHtml(item.statusKepegawaian)}</span>
+                    </td>
+                    <td class="p-3 sm:p-4">
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border ${sessionBadgeColor}">${escapeHtml(item.session)}</span>
+                    </td>
+                    <td class="p-3 sm:p-4 font-mono text-xs text-slate-600">
+                        <div>${escapeHtml(item.date)}</div>
+                        <div class="text-slate-400">${escapeHtml(item.time)} WITA</div>
+                    </td>
+                    <td class="p-3 sm:p-4 text-center">
+                        <button onclick='openPhotoModal(${JSON.stringify(item.photo)}, ${JSON.stringify(item.name)}, ${JSON.stringify(item.nip)}, ${JSON.stringify(item.session)})' class="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 shadow-sm inline-block hover:opacity-80 transition">
+                            <img src="${item.photo}" class="w-full h-full object-cover" alt="Foto">
+                        </button>
+                    </td>
+                    <td class="p-3 sm:p-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                                <i class="fa-solid fa-check"></i> Hadir
+                            </span>
+                            <button onclick="promptDeleteAttendance('${item.id}', '${escapeHtml(item.name)}', '${escapeHtml(item.session)}')" title="Hapus Data Absensi" class="p-1.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-600 hover:text-white transition">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        // --- DELETE ATTENDANCE FUNCTIONALITY ---
+        window.promptDeleteAttendance = function(id, name, session) {
+            pendingDeleteId = id;
+            document.getElementById('delete-modal-msg').innerText = `Apakah Anda yakin ingin menghapus data absensi atas nama ${name} (${session})?`;
+            document.getElementById('delete-modal').classList.remove('hidden');
+        };
+
+        window.closeDeleteModal = function() {
+            pendingDeleteId = null;
+            document.getElementById('delete-modal').classList.add('hidden');
+        };
+
+        window.confirmDeleteAttendance = async function() {
+            if (!pendingDeleteId) return;
+
+            const btn = document.getElementById('btn-confirm-delete');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menghapus...`;
+
+            try {
+                if (db && attendanceCollection) {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'absensi_disdukcapil', pendingDeleteId);
+                    await deleteDoc(docRef);
+                } else {
+                    allAttendanceRecords = allAttendanceRecords.filter(item => item.id !== pendingDeleteId);
+                    saveLocalFallback();
+                }
+
+                closeDeleteModal();
+                showAlertModal("Berhasil Dihapus", "Data riwayat absensi pegawai telah berhasil dihapus.", "success");
+            } catch (err) {
+                console.error("Error deleting document:", err);
+                closeDeleteModal();
+                showAlertModal("Gagal Menghapus", "Terjadi kesalahan saat menghapus data dari database.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-trash-can"></i> Hapus`;
+            }
+        };
+
+        // --- PHOTO MODAL ---
+        window.openPhotoModal = function(photoUrl, name, nip, session) {
+            document.getElementById('modal-img-preview').src = photoUrl;
+            document.getElementById('modal-employee-title').innerText = `Bukti Foto: ${name}`;
+            document.getElementById('modal-employee-meta').innerHTML = `
+                <div><strong>NIP:</strong> ${nip}</div>
+                <div><strong>Sesi:</strong> ${session}</div>
+            `;
+            document.getElementById('photo-modal').classList.remove('hidden');
+        };
+
+        window.closePhotoModal = function() {
+            document.getElementById('photo-modal').classList.add('hidden');
+        };
+
+        // --- EXPORT TO CSV (EXCEL COMPATIBLE) ---
+        window.exportToCSV = function() {
+            if (allAttendanceRecords.length === 0) {
+                showAlertModal("Data Kosong", "Tidak ada data absensi untuk diekspor.", "error");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "No,Nama Lengkap dan Gelar,NIP,Status Kepegawaian,Sesi Apel,Tanggal,Waktu (WITA),Status Kehadiran\r\n";
+
+            allAttendanceRecords.forEach((item, index) => {
+                const row = [
+                    index + 1,
+                    `"${item.name.replace(/"/g, '""')}"`,
+                    `"${item.nip}"`,
+                    `"${item.statusKepegawaian}"`,
+                    `"${item.session}"`,
+                    `"${item.date}"`,
+                    `"${item.time}"`,
+                    "Hadir"
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Rekap_Absensi_Disdukcapil_Bangkep_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // --- CUSTOM ALERT MODAL ---
+        window.showAlertModal = function(title, message, type) {
+            const modal = document.getElementById('alert-modal');
+            const titleEl = document.getElementById('alert-title');
+            const msgEl = document.getElementById('alert-message');
+            const iconEl = document.getElementById('alert-icon');
+
+            titleEl.innerText = title;
+            msgEl.innerText = message;
+
+            if (type === 'success') {
+                iconEl.className = "w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 text-2xl";
+                iconEl.innerHTML = `<i class="fa-solid fa-check"></i>`;
+            } else {
+                iconEl.className = "w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 text-2xl";
+                iconEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>`;
+            }
+
+            modal.classList.remove('hidden');
+        };
+
+        window.closeAlertModal = function() {
+            document.getElementById('alert-modal').classList.add('hidden');
+        };
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
